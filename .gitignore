@@ -1,0 +1,93 @@
+# 这是一个为 Project Providence (或你选择的名字) 准备的 .gitignore 文件
+# 适用于使用 Poetry, Ollama, LangChain 和 ChromaDB 的现代Python AI项目
+
+# 1. Python 运行时和缓存文件
+#######################################
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# 2. Python 虚拟环境
+# Poetry 默认在项目根目录创建 .venv
+# 同时包含其他常见名称
+#######################################
+.venv/
+venv/
+env/
+ENV/
+virtualenv/
+lib/
+lib64/
+include/
+Scripts/
+bin/
+
+# 3. Poetry, Pip 和打包文件
+#######################################
+# Poetry 锁文件不应被忽略，但构建产物应该被忽略
+dist/
+build/
+*.egg-info/
+*.egg
+
+# 4. 本地数据库 (ChromaDB)
+# 阻止你本地的向量数据库文件被上传
+#######################################
+*.db
+*.sqlite3
+# ChromaDB 默认的本地持久化目录
+.chroma/
+chroma_db/
+db/
+
+# 5. 敏感信息和环境配置
+# 极其重要！保护你的 API 密钥和本地设置
+#######################################
+.env
+.env.*
+secrets.toml
+config.ini
+
+# 6. IDE 和编辑器配置
+#######################################
+# Visual Studio Code
+.vscode/
+
+# PyCharm
+.idea/
+
+# Sublime Text
+*.sublime-project
+*.sublime-workspace
+
+# 7. 日志文件
+# 你的日志存储模块产生的文件
+#######################################
+*.log
+logs/
+*.log.*
+
+# 8. 测试和覆盖率报告
+#######################################
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+pytest-report.html
+
+# 9. 操作系统生成的文件
+#######################################
+# macOS
+.DS_Store
+.AppleDouble
+
+# Windows
+Thumbs.db
+ehthumbs.db
+
+
+# 调试开发记录文件
+develop.md
+开发流程.md
+项目结构.md
