@@ -17,15 +17,9 @@ class AgentInternalState(BaseModel):
 
     mood: MoodState = Field(default=MoodState.NEUTRAL, description="当前情绪状态")
     energy: int = Field(default=100, ge=0, le=100, description="当前精力值 (0-100)")
-    hunger: int = Field(
-        default=0, ge=0, le=100, description="当前饥饿度 (0-100, 越高越饿)"
-    )
-    social_need: int = Field(
-        default=50, ge=0, le=100, description="当前社交需求 (0-100, 越高越想社交)"
-    )
-    stress_level: int = Field(
-        default=0, ge=0, le=100, description="当前压力水平 (0-100)"
-    )
+    hunger: int = Field(default=0, ge=0, le=100, description="当前饥饿度 (0-100, 越高越饿)")
+    social_need: int = Field(default=50, ge=0, le=100, description="当前社交需求 (0-100, 越高越想社交)")
+    stress_level: int = Field(default=0, ge=0, le=100, description="当前压力水平 (0-100)")
 
 
 class RelationshipData(BaseModel):

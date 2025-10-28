@@ -7,41 +7,27 @@ from .state_models import AgentInternalState, RelationshipData
 
 
 class Agent:
-    """
-    代表模拟世界中的一个自主智能体 (AI '人')。
-    """
-
     def __init__(
         self,
         name: str,
         persona: str,
         agent_id: str,
-        # llm: BaseChatModel,
-        # memory_system: MemorySystem,
         start_location: str = "home",
     ):
 
         self.agent_id: str = agent_id
         self.name: str = name
         self.persona: str = persona
-        # self.llm: BaseChatModel = llm
-        # self.memory: MemorySystem = memory_system
 
-        # --- 状态与关系 ---
         self._internal_state: AgentInternalState = AgentInternalState()
         self._relationships: Dict[str, RelationshipData] = {}
-
-        # --- 当前活动 ---
         self._current_location: str = start_location
         self._current_action: Optional[Dict[str, Any]] = None
 
         logger.info(f"Agent '{self.name}' (ID: {self.agent_id}) 已创建。")
 
-    # --- 状态/关系更新方法 ---
     def update_mood(self, new_mood: str):
-        logger.debug(
-            f"Agent '{self.name}' 情绪更新: {self._internal_state.mood} -> {new_mood}"
-        )
+        logger.debug(f"Agent '{self.name}' 情绪更新: {self._internal_state.mood} -> {new_mood}")
         from .state_models import MoodState
 
         try:
@@ -58,15 +44,12 @@ class Agent:
             logger.trace(f"Agent '{self.name}' 尝试更新与自己的关系，已跳过。")
             return
 
-        # 如果关系记录不存在，则创建
         if target_agent_id not in self._relationships:
             self._relationships[target_agent_id] = RelationshipData()
-            logger.debug(
-                f"Agent '{self.name}' 首次与 Agent '{target_agent_id}' 建立关系记录。"
-            )
+            logger.debug(f"Agent '{self.name}' 首次与 Agent '{target_agent_id}' 建立关系记录。")
 
         rel = self._relationships[target_agent_id]
-        updated_attributes = {}  # 用于记录实际发生的改变，方便日志
+        updated_attributes = {}
 
         for attribute_name, change_value in changes.items():
             if hasattr(rel, attribute_name):
@@ -74,20 +57,13 @@ class Agent:
                     old_value = getattr(rel, attribute_name)
                     new_value = old_value + change_value
 
-                    # 边界检查
                     match attribute_name:
                         case "affinity":
-                            # 限制 affinity 在 -100 到 100 之间
                             new_value = max(-100, min(100, new_value))
-                            logger.trace(
-                                f"应用 affinity 边界: {old_value}+{change_value} -> {new_value}"
-                            )
+                            logger.trace(f"应用 affinity 边界: {old_value}+{change_value} -> {new_value}")
                         case "familiarity":
-                            # 限制 familiarity 在 0 到 100 之间
                             new_value = max(0, min(100, new_value))
-                            logger.trace(
-                                f"应用 familiarity 边界: {old_value}+{change_value} -> {new_value}"
-                            )
+                            logger.trace(f"应用 familiarity 边界: {old_value}+{change_value} -> {new_value}")
                         case _:
                             logger.trace(f"属性 '{attribute_name}' 无特定边界检查。")
                             pass
@@ -96,45 +72,27 @@ class Agent:
                         setattr(rel, attribute_name, new_value)
                         updated_attributes[attribute_name] = (old_value, new_value)
                     else:
-                        logger.trace(
-                            f"属性 '{attribute_name}' 的值未改变 ({old_value})，跳过更新。"
-                        )
+                        logger.trace(f"属性 '{attribute_name}' 的值未改变 ({old_value})，跳过更新。")
 
                 except TypeError:
-                    logger.warning(
-                        f"Agent '{self.name}': 更新与 Agent '{target_agent_id}' 的关系属性 "
-                        f"'{attribute_name}' 时发生类型错误 (值: {change_value})。"
-                    )
+                    logger.warning(f"Agent '{self.name}': 更新与 Agent '{target_agent_id}' 的关系属性 " f"'{attribute_name}' 时发生类型错误 (值: {change_value})。")
                 except Exception as e:
                     logger.error(
-                        f"Agent '{self.name}': 更新与 Agent '{target_agent_id}' 的关系属性 "
-                        f"'{attribute_name}' 时发生未知错误: {e}",
+                        f"Agent '{self.name}': 更新与 Agent '{target_agent_id}' 的关系属性 " f"'{attribute_name}' 时发生未知错误: {e}",
                         exc_info=True,
                     )
             else:
-                logger.warning(
-                    f"Agent '{self.name}': 尝试更新与 Agent '{target_agent_id}' "
-                    f"不存在的关系属性 '{attribute_name}'。"
-                )
+                logger.warning(f"Agent '{self.name}': 尝试更新与 Agent '{target_agent_id}' " f"不存在的关系属性 '{attribute_name}'。")
 
         if updated_attributes:
-            change_summary = ", ".join(
-                f"{attr} {old}->{new}"
-                for attr, (old, new) in updated_attributes.items()
-            )
-            logger.debug(
-                f"Agent '{self.name}' 与 Agent '{target_agent_id}' 关系更新: {change_summary}"
-            )
+            change_summary = ", ".join(f"{attr} {old}->{new}" for attr, (old, new) in updated_attributes.items())
+            logger.debug(f"Agent '{self.name}' 与 Agent '{target_agent_id}' 关系更新: {change_summary}")
 
-    # --- 核心方法 ---
-    # (保持不变, 例如 is_idle, think_and_act, _build_prompt)
-    def is_idle(self, current_time: datetime.datetime):
-        pass
+    def is_idle(self, current_time: datetime.datetime) -> bool:
+        return True
 
     async def think_and_act(self, current_time: datetime.datetime):
-        logger.info(
-            f"[{current_time.strftime('%H:%M')}] Agent '{self.name}' 开始思考..."
-        )
+        logger.info(f"[{current_time.strftime('%H:%M')}] Agent '{self.name}' 开始思考...")
         pass
 
     def _build_prompt(self, current_time: datetime.datetime) -> str:
