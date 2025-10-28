@@ -4,6 +4,7 @@ from loguru import logger
 from typing import Optional, Dict, Any
 
 from .state_models import AgentInternalState, RelationshipData
+from . import interactions as actions
 
 
 class Agent:
@@ -89,11 +90,71 @@ class Agent:
             logger.debug(f"Agent '{self.name}' 与 Agent '{target_agent_id}' 关系更新: {change_summary}")
 
     def is_idle(self, current_time: datetime.datetime) -> bool:
-        return True
+        if self._current_action is None:
+            return True
+
+        if current_time >= self._current_action["end_time"]:
+            action_name = "未知动作"
+            action_obj = self._current_action.get("action_obj")
+            if isinstance(action_obj, actions.ActionBase):
+                action_name = action_obj.__class__.__name__
+
+            logger.trace(f"Agent '{self.name}' 的动作 '{action_name}' 已完成。")
+            self._current_action = None
+            return True
+        else:
+            return False
 
     async def think_and_act(self, current_time: datetime.datetime):
         logger.info(f"[{current_time.strftime('%H:%M')}] Agent '{self.name}' 开始思考...")
-        pass
+        # --- 1. 感知与记忆检索 (未来实现) ---
+        # ...
+
+        # --- 2. 构建 Prompt ---
+        prompt = self._build_prompt(current_time)
+
+        # --- 3. 调用 LLM 决策 ---
+        logger.debug(f"Agent '{self.name}' 调用 LLM 进行决策...")
+
+        action_plan: actions.ActionBase
+
+        try:
+            # [未来] 在这里替换为真正的 LLM 调用
+            # response = await self.llm.ainvoke(prompt)
+            # action_plan = parse_llm_output(response) # 解析 LLM 返回的 Action Pydantic 对象
+
+            # [临时占位符] 使用真实的 WaitAction
+            action_plan = actions.WaitAction(duration_minutes=5)
+
+            logger.info(f"Agent '{self.name}' 决定执行: {action_plan.__class__.__name__} ({action_plan.duration_minutes} 分钟)")
+        except Exception as e:
+            logger.error(f"Agent '{self.name}' LLM 决策失败: {e}", exc_info=True)
+            action_plan = actions.WaitAction(duration_minutes=1)  # 默认容错动作
+
+        try:
+            # [未来] 在这里执行动作的实际逻辑
+            # 你需要把 registry 传递下去
+            # registry = kwargs.get("agent_registry") # (需要从 _trigger_agent_think 传入)
+            # await action_plan.execute(self, agent_registry=registry)
+
+            # [核心] 更新 Agent 的当前动作和结束时间
+            action_end_time = current_time + datetime.timedelta(minutes=action_plan.duration_minutes)
+            self._current_action = {
+                "action_obj": action_plan,
+                "end_time": action_end_time,
+            }
+            logger.debug(f"Agent '{self.name}' 当前动作设置为 '{action_plan.__class__.__name__}', 预计结束于 {action_end_time.strftime('%H:%M')}")
+        except Exception as e:
+            logger.error(
+                f"Agent '{self.name}' 执行动作 '{action_plan.__class__.__name__}' 失败: {e}",
+                exc_info=True,
+            )
+            # 容错：设置一个短等待
+            action_end_time = current_time + datetime.timedelta(minutes=1)
+            self._current_action = {
+                "action_obj": actions.WaitAction(duration_minutes=1),
+                "end_time": action_end_time,
+            }
 
     def _build_prompt(self, current_time: datetime.datetime) -> str:
         prompt = f"""
