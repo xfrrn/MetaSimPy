@@ -1,10 +1,16 @@
 import json
 from pathlib import Path
-from typing import Dict, List, Optional, Callable
+from typing import Dict, List, Optional, Callable, Tuple, TYPE_CHECKING
 from loguru import logger
 import random
+import heapq
 
 from .locations import Location, LocationType
+
+if TYPE_CHECKING:
+    from ..agents.agent import Agent
+    from ..agents.registry import AgentRegistry
+    from .objects import GameObject
 
 ConnectionData = Dict[str, Dict[str, int]]
 
@@ -186,3 +192,75 @@ class WorldMap:
             logger.warning("无法获取随机地点：没有符合条件的地点。")
             return None
         return random.choice(candidate_locations)
+
+    def find_path(self, start_name: str, end_name: str) -> Optional[Tuple[List[str], int]]:
+        """使用 Dijkstra 算法计算两个地点之间的最短路径和总时间"""
+        if not self.is_valid_location(start_name) or not self.is_valid_location(end_name):
+            logger.warning(f"路径规划失败：无效的地点 '{start_name}' 或 '{end_name}'")
+            return None
+
+        if start_name == end_name:
+            return ([start_name], 0)
+        distances: Dict[str, float] = {loc: float("inf") for loc in self._locations}
+        previous_nodes: Dict[str, Optional[str]] = {loc: None for loc in self._locations}
+        distances[start_name] = 0
+
+        pq: List[Tuple[float, str]] = [(0, start_name)]
+
+        while pq:
+            current_distance, current_node = heapq.heappop(pq)
+
+            if current_distance > distances[current_node]:
+                continue
+            if current_node == end_name:
+                path: List[str] = []
+                temp_node = end_name
+                while temp_node is not None:
+                    path.append(temp_node)
+                    temp_node = previous_nodes[temp_node]
+
+                if distances[end_name] == float("inf"):
+                    break
+
+                return (list(reversed(path)), int(distances[end_name]))
+            if current_node in self._connections:
+                for neighbor, time in self._connections[current_node].items():
+                    new_distance = current_distance + time
+
+                    if new_distance < distances[neighbor]:
+                        distances[neighbor] = new_distance
+                        previous_nodes[neighbor] = current_node
+                        heapq.heappush(pq, (new_distance, neighbor))
+
+        logger.warning(f"无法找到从 '{start_name}' 到 '{end_name}' 的路径。")
+        return None
+
+    def get_agents_at_location(self, location_name: str, agent_registry: "AgentRegistry") -> List["Agent"]:
+        """[空间查询] 获取当前在指定地点的所有 Agent 实例"""
+        if not self.is_valid_location(location_name):
+            logger.warning(f"尝试查询一个无效地点的 Agent: {location_name}")
+            return []
+
+        all_agents = agent_registry.get_all_agents()
+        agents_at_location = [agent for agent in all_agents if agent._current_location == location_name]
+        return agents_at_location
+
+    def get_objects_with_verb(
+        self,
+        location_name: str,
+        verb: str,
+        object_prototypes: Dict[str, "GameObject"],
+    ) -> List["GameObject"]:
+        """[空间查询] 获取指定地点中所有允许特定交互动词的物体原型"""
+        location = self.get_location(location_name)
+        if not location:
+            logger.warning(f"尝试查询无效地点的物体: {location_name}")
+            return []
+
+        matching_objects = []
+        for obj_name in location.objects:
+            prototype = object_prototypes.get(obj_name)
+            if prototype and prototype.interaction_verb == verb:
+                matching_objects.append(prototype)
+
+        return matching_objects
