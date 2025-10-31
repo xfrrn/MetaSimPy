@@ -1,0 +1,135 @@
+[
+  {
+    "name": "Bed",
+    "description": "一张舒适的床",
+    "interaction_verb": "sleep_in"
+  },
+  {
+    "name": "Fridge",
+    "description": "冰箱",
+    "interaction_verb": "take_food_from",
+    "properties": { "food_level": 5 }
+  },
+  {
+    "name": "Shower",
+    "description": "淋浴设备",
+    "interaction_verb": "use",
+    "affects_state": { "hygiene": [30, 70], "stress_level": [-5, -1] }
+  },
+  {
+    "name": "Mailbox",
+    "description": "邮箱",
+    "interaction_verb": "check_mail"
+  },
+  {
+    "name": "WashingMachine",
+    "description": "公共洗衣机",
+    "interaction_verb": "use",
+    "cost": 5,
+    "properties": { "status": "idle" },
+    "affects_state": { "laundry_need": [-70, -30], "energy": [-5, -5] }
+  },
+  {
+    "name": "GardenPlot",
+    "description": "楼顶花园的地块",
+    "interaction_verb": "gardening"
+  },
+  {
+    "name": "Bench",
+    "description": "公园长椅",
+    "interaction_verb": "sit_on",
+    "affects_state": { "energy": [1, 5], "stress_level": [-10, -1] }
+  },
+  {
+    "name": "Fountain",
+    "description": "公园喷泉",
+    "interaction_verb": "watch"
+  },
+  {
+    "name": "CheckoutCounter",
+    "description": "超市收银台",
+    "interaction_verb": "work_at",
+    "job_type": "cashier",
+    "hourly_wage": 12,
+    "max_workers": 1,
+    "state_changes_per_hour": {
+      "energy": [-10, -6],
+      "stress_level": [2, 5]
+    }
+  },
+  {
+    "name": "Shelf_Food",
+    "description": "超市食品货架",
+    "interaction_verb": "buy_from",
+    "properties": {
+      "items": { "apple": 2, "bread": 3, "banana": 1 }
+    }
+  },
+  {
+    "name": "Shelf_Drink",
+    "description": "超市饮料货架",
+    "interaction_verb": "buy_from",
+    "properties": {
+      "items": { "water": 1, "soda": 2 }
+    }
+  },
+  {
+    "name": "ShoppingBasket",
+    "description": "购物篮",
+    "interaction_verb": "use"
+  },
+  {
+    "name": "CoffeeMachine",
+    "description": "咖啡机",
+    "interaction_verb": "use",
+    "cost": 5,
+    "produces_item": "coffee",
+    "affects_state": { "energy": [10, 25], "mood": "CONTENT" }
+  },
+  {
+    "name": "CafeCounter",
+    "description": "咖啡馆柜台",
+    "interaction_verb": "work_at",
+    "job_type": "barista",
+    "hourly_wage": 15,
+    "max_workers": 1,
+    "state_changes_per_hour": {
+      "energy": [-8, -5],
+      "stress_level": [1, 3]
+    }
+  },
+  {
+    "name": "Table",
+    "description": "咖啡馆的桌子",
+    "interaction_verb": "sit_at"
+  },
+  {
+    "name": "ClinicDesk",
+    "description": "诊所前台",
+    "interaction_verb": "consult",
+    "cost": 100
+  },
+  {
+    "name": "MedicineCabinet",
+    "description": "诊所药柜",
+    "interaction_verb": "buy_from",
+    "properties": {
+      "items": { "painkiller": 10 }
+    }
+  },
+  {
+    "name": "Bookshelf",
+    "description": "社区中心书架",
+    "interaction_verb": "read_book"
+  },
+  {
+    "name": "CommunityBoard",
+    "description": "社区公告板",
+    "interaction_verb": "read_notice"
+  },
+  {
+    "name": "BusSign",
+    "description": "公交站牌",
+    "interaction_verb": "check_schedule"
+  }
+]

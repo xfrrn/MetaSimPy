@@ -1,0 +1,110 @@
+[
+  {
+    "name": "Apartment_1A",
+    "description": "亚当的公寓",
+    "type": "住宅",
+    "objects": ["Bed", "Fridge", "Shower"],
+    "tags": ["private", "home"]
+  },
+  {
+    "name": "Apartment_1B",
+    "description": "夏娃的公寓",
+    "type": "住宅",
+    "objects": ["Bed", "Fridge", "Shower"],
+    "tags": ["private", "home"]
+  },
+  {
+    "name": "Lobby",
+    "description": "公寓楼大厅和邮件室",
+    "type": "公寓内部公共区域",
+    "objects": ["Mailbox"],
+    "tags": ["social", "public"]
+  },
+  {
+    "name": "Laundry_Room",
+    "description": "公寓洗衣房",
+    "type": "公寓内部公共区域",
+    "objects": ["WashingMachine"],
+    "services": { "laundry": 5 },
+    "tags": ["chore"]
+  },
+  {
+    "name": "Rooftop",
+    "description": "楼顶露台花园",
+    "type": "公寓外部公共区域",
+    "objects": ["GardenPlot"],
+    "tags": ["relax", "hobby", "outdoor"]
+  },
+  {
+    "name": "Building_Entrance",
+    "description": "公寓楼入口",
+    "type": "公寓外部公共区域",
+    "objects": [],
+    "tags": ["transit", "public"]
+  },
+  {
+    "name": "Walking_Path",
+    "description": "环绕公寓楼的500米散步道",
+    "type": "户外",
+    "objects": [],
+    "tags": ["exercise", "relax", "outdoor"]
+  },
+  {
+    "name": "Park",
+    "description": "社区公园",
+    "type": "户外",
+    "objects": ["Bench", "Fountain"],
+    "tags": ["relax", "social", "outdoor"]
+  },
+  {
+    "name": "Supermarket",
+    "description": "社区超市",
+    "type": "商业",
+    "objects": [
+      "CheckoutCounter",
+      "Shelf_Food",
+      "Shelf_Drink",
+      "ShoppingBasket"
+    ],
+    "available_jobs": { "cashier": 1 },
+    "tags": ["shopping", "work", "food"]
+  },
+  {
+    "name": "Cafe",
+    "description": "温馨的咖啡馆",
+    "type": "商业",
+    "objects": ["CoffeeMachine", "CafeCounter", "Table", "EspressoMachine"],
+    "services": { "coffee": 5, "sandwich": 8 },
+    "available_jobs": { "barista": 1 },
+    "tags": ["social", "work", "food", "relax"]
+  },
+  {
+    "name": "Clinic",
+    "description": "社区小诊所",
+    "type": "服务设施",
+    "objects": ["ClinicDesk", "MedicineCabinet"],
+    "services": { "medical_consultation": 100 },
+    "tags": ["health"]
+  },
+  {
+    "name": "Community_Center",
+    "description": "社区活动中心",
+    "type": "公寓外部公共区域",
+    "objects": ["Bookshelf", "CommunityBoard"],
+    "tags": ["social", "hobby"]
+  },
+  {
+    "name": "Bus_Stop",
+    "description": "公交车站",
+    "type": "交通中转",
+    "objects": ["BusSign"],
+    "tags": ["transit"]
+  },
+  {
+    "name": "Highway",
+    "description": "通往外部的高速公路入口",
+    "type": "交通中转",
+    "objects": [],
+    "tags": ["transit", "exit"]
+  }
+]

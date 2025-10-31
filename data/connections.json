@@ -1,0 +1,66 @@
+{
+  "Apartment_1A": {
+    "Lobby": 2,
+    "Building_Entrance": 3
+  },
+  "Apartment_1B": {
+    "Lobby": 2,
+    "Building_Entrance": 3
+  },
+  "Lobby": {
+    "Apartment_1A": 2,
+    "Apartment_1B": 2,
+    "Laundry_Room": 1,
+    "Building_Entrance": 1,
+    "Rooftop": 3
+  },
+  "Laundry_Room": {
+    "Lobby": 1
+  },
+  "Rooftop": {
+    "Lobby": 3
+  },
+  "Building_Entrance": {
+    "Lobby": 1,
+    "Apartment_1A": 3,
+    "Apartment_1B": 3,
+    "Walking_Path": 2,
+    "Bus_Stop": 3,
+    "Supermarket": 5,
+    "Cafe": 4,
+    "Clinic": 6,
+    "Community_Center": 5
+  },
+  "Walking_Path": {
+    "Building_Entrance": 2,
+    "Park": 5
+  },
+  "Park": {
+    "Walking_Path": 5,
+    "Community_Center": 4
+  },
+  "Supermarket": {
+    "Building_Entrance": 5,
+    "Cafe": 2
+  },
+  "Cafe": {
+    "Building_Entrance": 4,
+    "Supermarket": 2,
+    "Clinic": 3
+  },
+  "Clinic": {
+    "Building_Entrance": 6,
+    "Cafe": 3
+  },
+  "Community_Center": {
+    "Building_Entrance": 5,
+    "Park": 4
+  },
+  "Bus_Stop": {
+    "Building_Entrance": 3,
+    "Highway": 10
+  },
+  "Highway": {
+    "Bus_Stop": 10
+  }
+}
