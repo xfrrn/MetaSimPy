@@ -7,6 +7,7 @@ if TYPE_CHECKING:
     from ..agents.registry import AgentRegistry
     from .map import WorldMap
     from .objects import GameObject
+    from .world_state import WorldState
 
 
 async def interact_with_object(
@@ -14,6 +15,8 @@ async def interact_with_object(
     object_name: str,
     world_map: "WorldMap",
     object_prototypes: Dict[str, "GameObject"],
+    world_state: "WorldState",  # <-- [修改]
+    agent_registry: Optional["AgentRegistry"] = None,  # <-- [修改]
 ) -> Tuple[bool, int]:
     """
     通用的物体交互处理函数。
@@ -41,6 +44,22 @@ async def interact_with_object(
     if not rules:
         logger.warning(f"物体 '{object_name}' 没有在 object_prototypes 中定义。")
         return False, 1
+
+    if object_name == "CommunityBoard":
+        logger.info(f"Agent '{agent.name}' 正在 '{location.name}' 阅读公告栏...")
+        # 调用 WorldState 获取动态信息
+        available_jobs = world_state.get_all_available_jobs(world_map)
+
+        if not available_jobs:
+            log_msg = "公告栏：目前没有空闲的工作岗位。"
+        else:
+            job_listings = "; ".join([f"在 {loc} 有 {', '.join(jobs)} 工作" for loc, jobs in available_jobs.items()])
+            log_msg = f"公告栏-空闲岗位: {job_listings}"
+
+        logger.info(log_msg)
+        # [未来] 可以将 log_msg 存入 Agent 的短期记忆
+
+        return True, 5  # 阅读需要5分钟
 
     # 1. 检查前置条件 (Preconditions)
     if object_name == "WashingMachine":
@@ -122,6 +141,8 @@ async def perform_work(
     duration_minutes: int,
     world_map: "WorldMap",
     object_prototypes: Dict[str, "GameObject"],
+    world_state: "WorldState",  # <-- [修改]
+    agent_registry: "AgentRegistry",  # <-- [修改]
 ) -> Tuple[bool, int]:
     """
     执行工作动作的逻辑。
@@ -155,6 +176,9 @@ async def perform_work(
     if hourly_wage is None:
         logger.error(f"工作 '{job_type}' 在 '{location.name}' 未定义工资。")
         return False, 1
+    if not world_state.assign_job_to_agent(agent, location.name, job_type, world_map):
+        # 分配失败（可能没空位或 Agent 已在工作）
+        return False, 1  # 失败，占用1分钟
     logger.info(f"Agent '{agent.name}' 在 '{location.name}' 开始 '{job_type}' 工作，计划 {duration_minutes} 分钟...")
 
     # 计算实际收入

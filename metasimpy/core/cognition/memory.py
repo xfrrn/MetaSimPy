@@ -67,7 +67,6 @@ class MemoryRecord(BaseModel):
         )
 
 
-# --- 2. 记忆系统核心类 ---
 
 
 class MemorySystem:
