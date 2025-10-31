@@ -1,0 +1,52 @@
+{
+  "llm_profiles": {
+    "local_llama_chat": {
+      "provider": "ollama",
+      "model": "llama3:8b",
+      "temperature": 0.7
+    },
+    "api_deepseek_chat": {
+      "provider": "openai_compatible",
+      "model": "deepseek-chat",
+      "temperature": 0.7,
+      "base_url": "https://api.deepseek.com/v1",
+      "api_key_env_var": "DEEPSEEK_API_KEY"
+    }
+  },
+
+  "embedding_profiles": {
+    "local_embed": {
+      "provider": "ollama",
+      "model": "mxbai-embed-large",
+      "base_url": null,
+      "api_key_env_var": null
+    },
+    "api_deepseek_embed": {
+      "provider": "openai_compatible",
+      "model": "deepseek-embed",
+      "base_url": "https://api.deepseek.com/v1",
+      "api_key_env_var": "DEEPSEEK_API_KEY"
+    }
+  },
+
+  "memory_settings": {
+    "embedding_profile_name": "local_embed"
+  },
+
+  "agents": [
+    {
+      "agent_id": "adam_01",
+      "name": "亚当",
+      "persona_file": "adam_persona.txt",
+      "start_location": "Apartment_1A",
+      "llm_profile_name": "local_llama_chat"
+    },
+    {
+      "agent_id": "eve_02",
+      "name": "夏娃",
+      "persona_file": "eve_persona.txt",
+      "start_location": "Apartment_1B",
+      "llm_profile_name": "api_deepseek_chat"
+    }
+  ]
+}
