@@ -67,8 +67,6 @@ class MemoryRecord(BaseModel):
         )
 
 
-
-
 class MemorySystem:
     """封装了 Agent 长期记忆的存储与检索逻辑。使用 ChromaDB 作为向量存储后端，并结合 LangChain 组件"""
 
@@ -87,9 +85,10 @@ class MemorySystem:
         try:
             self._client = chromadb.PersistentClient(path=self.persist_directory)
             logger.info(f"ChromaDB 持久化客户端已连接到: {self.persist_directory}")
-        except Exception as e:
-            logger.error(f"连接 ChromaDB 失败: {e}", exc_info=True)
-            raise
+        except Exception as persist_error:
+            logger.warning(f"持久化客户端失败 ({persist_error})，尝试使用普通客户端")
+            self._client = chromadb.Client()
+            logger.info("ChromaDB 普通客户端已连接")
 
         self._agent_collections: Dict[str, Chroma] = {}
 

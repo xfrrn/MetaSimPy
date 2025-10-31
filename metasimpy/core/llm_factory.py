@@ -2,7 +2,8 @@ from loguru import logger
 from langchain_community.chat_models import ChatOllama, ChatOpenAI
 from langchain_core.language_models import BaseLanguageModel
 from langchain_core.embeddings import Embeddings as BaseEmbeddings
-from langchain_community.embeddings import OllamaEmbeddings, OpenAIEmbeddings
+from langchain_community.embeddings import OpenAIEmbeddings
+from langchain_ollama import OllamaEmbeddings
 
 from .config import AgentProfile, LLMSettings, LLMProvider, LLMProfile, EmbeddingProfile
 
