@@ -22,6 +22,7 @@ class Agent:
         name: str,
         persona: str,
         agent_id: str,
+        base_prompt_template: str,
         start_location: str = "home",
         llm: Optional["BaseLanguageModel"] = None,
         memory_system: Optional["MemorySystem"] = None,
@@ -33,6 +34,8 @@ class Agent:
 
         self.llm = llm
         self.memory_system = memory_system
+
+        self._base_prompt_template = base_prompt_template
 
         self._internal_state: AgentInternalState = AgentInternalState()
         self._relationships: Dict[str, RelationshipData] = {}
@@ -211,59 +214,46 @@ class Agent:
                 "end_time": current_time + datetime.timedelta(minutes=1),
             }
 
-    def _build_prompt(self, current_time: datetime.datetime, agents_here: List["Agent"], objects_here: List[str], memories: List["MemoryRecord"]) -> str:
-        prompt = f"""
-        你是 {self.name}.
-        {self.persona}
-        """
+    def _build_prompt(
+        self,
+        current_time: datetime.datetime,
+        agents_here: List["Agent"],
+        objects_here: List[str],
+        memories: List["MemoryRecord"],
+    ) -> str:
+        prompt = self._base_prompt_template.replace("{{PERSONA}}", self.persona)
+        prompt = prompt.replace(
+            "{{MOOD}}",
+            self._internal_state.mood.value if isinstance(self._internal_state.mood, Enum) else self._internal_state.mood,
+        )
+        prompt = prompt.replace("{{ENERGY}}", str(self._internal_state.energy))
+        prompt = prompt.replace("{{HUNGER}}", str(self._internal_state.hunger))
+        prompt = prompt.replace("{{STRESS_LEVEL}}", str(self._internal_state.stress_level))
+        prompt = prompt.replace("{{SOCIAL_NEED}}", str(self._internal_state.social_need))
+        prompt = prompt.replace("{{CURRENT_TIME}}", current_time.strftime("%Y-%m-%d %H:%M"))
+        prompt = prompt.replace("{{CURRENT_LOCATION}}", self._current_location)
 
-        prompt += f"""
-        ---
-        [当前概况]
-        当前时间是 {current_time.strftime('%Y-%m-%d %H:%M')}.
-        你目前位于 {self._current_location}.
-        你的内部状态: 
-        - 情绪: {self._internal_state.mood.value if isinstance(self._internal_state.mood, Enum) else self._internal_state.mood}
-        - 精力: {self._internal_state.energy}/100
-        - 饥饿度: {self._internal_state.hunger}/100 (越高越饿)
-        - 压力: {self._internal_state.stress_level}/100
-        - 社交需求: {self._internal_state.social_need}/100
-        """
-
-        prompt += "\n[环境感知]"
         if len(agents_here) > 1:
             other_agent_names = [a.name for a in agents_here if a.agent_id != self.agent_id]
-            prompt += f"\n你看到这里有 {len(other_agent_names)} 个人: {', '.join(other_agent_names)}."
+            if other_agent_names:
+                prompt = prompt.replace("{{AGENTS_HERE}}", f"你看到这里有 {len(other_agent_names)} 个人: {', '.join(other_agent_names)}.")
+            else:
+                prompt = prompt.replace("{{AGENTS_HERE}}", "这里现在只有你一个人。")
         else:
-            prompt += "\n这里现在只有你一个人。"
+            prompt = prompt.replace("{{AGENTS_HERE}}", "这里现在只有你一个人。")
 
-        prompt += f"\n你看到这里的物品有: {', '.join(objects_here)}."
+        prompt = prompt.replace(
+            "{{OBJECTS_HERE}}",
+            f"你看到这里的物品有: {', '.join(objects_here)}." if objects_here else "这里似乎没有什么可交互的物品。",
+        )
 
-        prompt += "\n\n[相关记忆]"
         if memories:
+            memory_str = "[你的相关记忆如下]:\n"
             for mem in memories:
                 time_ago = (current_time - mem.timestamp).total_seconds() / 60
-                prompt += f"\n- [{mem.type.value}, {time_ago:.0f} 分钟前]: {mem.content}"
+                memory_str += f"- [{mem.type.value}, {time_ago:.0f} 分钟前]: {mem.content}\n"
+            prompt = prompt.replace("{{MEMORIES}}", memory_str.strip())
         else:
-            prompt += "\n你暂时没有相关的记忆。"
+            prompt = prompt.replace("{{MEMORIES}}", "[你对这里暂时没有相关的记忆。]")
 
-        prompt += f"""
-        ---
-        [决策]
-        根据你的身份、当前状态、环境和记忆，决定你接下来要做什么。
-        请只输出一个 JSON 对象，描述你的下一个动作。
-        
-        可选的动作 (action_name) 包括:
-        - "Wait": (参数: duration_minutes)
-        - "MoveTo": (参数: target_location)
-        - "Speak": (参数: message, target_agent_id)
-        - "UseObject": (参数: object_name)
-        - "Work": (参数: job_type, duration_minutes)
-        - "BuyItem": (参数: item_name, quantity)
-
-        示例:
-        {{"action_name": "MoveTo", "parameters": {{"target_location": "Cafe"}}}}
-        
-        你的 JSON 决策:
-        """
         return prompt.strip()
