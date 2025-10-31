@@ -53,7 +53,11 @@
       "name": "Sam (山姆)",
       "persona_file": "sam_persona.txt",
       "start_location": "Apartment_2A",
-      "llm_profile_name": "local_llama_chat"
+      "llm_profile_name": "local_llama_chat",
+      "initial_state": {
+        "money": 50,
+        "hunger": 25
+      }
     },
     {
       "agent_id": "chloe_04",

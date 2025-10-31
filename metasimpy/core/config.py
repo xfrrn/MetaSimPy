@@ -1,8 +1,8 @@
 # metasimpy/core/config.py
 
 from pydantic_settings import BaseSettings
-from pydantic import BaseModel, Field, FilePath
-from typing import Optional, List, Dict
+from pydantic import BaseModel, Field
+from typing import Optional, List, Dict, Any
 from enum import Enum
 from pathlib import Path
 
@@ -67,6 +67,8 @@ class AgentProfile(BaseModel):
     persona_file: str
     start_location: str
     llm_profile_name: str
+
+    initial_state: Optional[Dict[str, Any]] = Field(default=None, description="可选：重载 agent 的初始内部状态 (例如 'money': 50)")
 
 
 class AppConfig(BaseModel):
