@@ -23,6 +23,7 @@ Bus_Stop: 公交车站。
 2. 当前概况 (你的所见所闻)
 当前时间：{{CURRENT_TIME}}
 你的位置：{{CURRENT_LOCATION}} (地点类型: {{LOCATION_TYPE}})
+你的家：{{HOME_LOCATION}}
 
 你的内部状态：
 情绪： {{MOOD}}

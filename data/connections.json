@@ -7,9 +7,19 @@
     "Lobby": 2,
     "Building_Entrance": 3
   },
+  "Apartment_2A": {
+    "Lobby": 2,
+    "Building_Entrance": 3
+  },
+  "Apartment_2B": {
+    "Lobby": 2,
+    "Building_Entrance": 3
+  },
   "Lobby": {
     "Apartment_1A": 2,
     "Apartment_1B": 2,
+    "Apartment_2A": 2,
+    "Apartment_2B": 2,
     "Laundry_Room": 1,
     "Building_Entrance": 1,
     "Rooftop": 3

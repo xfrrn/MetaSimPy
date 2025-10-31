@@ -24,10 +24,10 @@ class Agent:
         agent_id: str,
         base_prompt_template: str,
         start_location: str = "home",
+        initial_state: Optional[Dict[str, Any]] = None,
         llm: Optional["BaseLanguageModel"] = None,
         memory_system: Optional["MemorySystem"] = None,
     ):
-
         self.agent_id: str = agent_id
         self.name: str = name
         self.persona: str = persona
@@ -37,12 +37,22 @@ class Agent:
 
         self._base_prompt_template = base_prompt_template
 
-        self._internal_state: AgentInternalState = AgentInternalState()
+        if initial_state:
+            logger.debug(f"Agent '{self.name}' 正在使用 JSON 中的特定初始状态: {initial_state}")
+            self._internal_state: AgentInternalState = AgentInternalState(**initial_state)
+        else:
+            logger.trace(f"Agent '{self.name}' 正在使用默认的初始状态。")
+            self._internal_state: AgentInternalState = AgentInternalState()
+
         self._relationships: Dict[str, RelationshipData] = {}
-        self._current_location: str = start_location
+        self._home_location: str = start_location
+        self._current_location: str = start_location  # 当前位置也从这里开始
         self._current_action: Optional[Dict[str, Any]] = None
 
         logger.info(f"Agent '{self.name}' (ID: {self.agent_id}) 已创建。")
+        logger.debug(f"  -> 初始位置: {self._current_location}")
+        logger.debug(f"  -> 绑定的家: {self._home_location}")
+        logger.debug(f"  -> 初始状态: Money={self._internal_state.money}, Energy={self._internal_state.energy}, Hunger={self._internal_state.hunger}")
 
     def update_mood(self, new_mood: str):
         logger.debug(f"Agent '{self.name}' 情绪更新: {self._internal_state.mood} -> {new_mood}")
@@ -105,7 +115,8 @@ class Agent:
             if isinstance(action_obj, actions.ActionBase):
                 action_name = action_obj.__class__.__name__
 
-            world_state.remove_agent_from_job(self.agent_id)
+            if isinstance(action_obj, actions.WorkAction):
+                world_state.remove_agent_from_job(self.agent_id)
 
             logger.trace(f"Agent '{self.name}' 的动作 '{action_name}' 已完成。")
             self._current_action = None
@@ -157,10 +168,21 @@ class Agent:
             agents_here = world_map.get_agents_at_location(self._current_location, agent_registry)
             objects_here = world_map.get_objects_at_location(self._current_location)
             # 1b. 检索相关记忆
-            retrieved_memories = await self.memory_system.retrieve_memories(self.agent_id, query_text=f"我现在的状态是 {self._internal_state.mood.value}，我在 {self._current_location}。", current_time=current_time, top_k=10)
+            retrieved_memories = await self.memory_system.retrieve_memories(
+                self.agent_id,
+                query_text=f"我现在的状态是 {self._internal_state.mood.value}，我在 {self._current_location}。",
+                current_time=current_time,
+                top_k=10,
+            )
 
             # 2. 构建 Prompt
-            prompt = self._build_prompt(current_time=current_time, agents_here=agents_here, objects_here=objects_here, memories=retrieved_memories)
+            prompt = self._build_prompt(
+                current_time=current_time,
+                world_map=world_map,
+                agents_here=agents_here,
+                objects_here=objects_here,
+                memories=retrieved_memories,
+            )
 
             # 3. 调用 LLM 决策
             logger.debug(f"Agent '{self.name}' 调用 LLM 进行决策...")
@@ -175,7 +197,16 @@ class Agent:
                 logger.error(f"Agent '{self.name}' LLM 决策失败: {e}", exc_info=True)
                 action_plan = actions.WaitAction(duration_minutes=1)
         try:
-            await action_plan.execute(self, world_map=world_map, world_state=world_state, object_prototypes=object_prototypes, agent_registry=agent_registry, memory_system=self.memory_system, current_time=current_time)
+            # 4. 执行动作
+            await action_plan.execute(
+                self,
+                world_map=world_map,
+                world_state=world_state,
+                object_prototypes=object_prototypes,
+                agent_registry=agent_registry,
+                memory_system=self.memory_system,
+                current_time=current_time,
+            )
 
             action_end_time = current_time + datetime.timedelta(minutes=action_plan.duration_minutes)
             self._current_action = {
@@ -184,6 +215,7 @@ class Agent:
             }
             logger.debug(f"Agent '{self.name}' 当前动作设置为 '{action_plan.__class__.__name__}', 预计结束于 {action_end_time.strftime('%H:%M')}")
 
+            # 5a. 如果有记忆系统，就记录记忆
             if self.memory_system:
                 from ..cognition.memory import MemoryRecord, MemoryType
 
@@ -217,11 +249,15 @@ class Agent:
     def _build_prompt(
         self,
         current_time: datetime.datetime,
+        world_map: "WorldMap",
         agents_here: List["Agent"],
         objects_here: List[str],
         memories: List["MemoryRecord"],
     ) -> str:
+        # 1. 填充 身份
         prompt = self._base_prompt_template.replace("{{PERSONA}}", self.persona)
+
+        # 2. 填充 内部状态 (mood, energy, hunger 等)
         prompt = prompt.replace(
             "{{MOOD}}",
             self._internal_state.mood.value if isinstance(self._internal_state.mood, Enum) else self._internal_state.mood,
@@ -230,13 +266,30 @@ class Agent:
         prompt = prompt.replace("{{HUNGER}}", str(self._internal_state.hunger))
         prompt = prompt.replace("{{STRESS_LEVEL}}", str(self._internal_state.stress_level))
         prompt = prompt.replace("{{SOCIAL_NEED}}", str(self._internal_state.social_need))
+
+        # 3. 填充 环境感知
         prompt = prompt.replace("{{CURRENT_TIME}}", current_time.strftime("%Y-%m-%d %H:%M"))
+
+        # 填充“家”的位置
+        prompt = prompt.replace("{{HOME_LOCATION}}", self._home_location)
+
         prompt = prompt.replace("{{CURRENT_LOCATION}}", self._current_location)
 
+        # 填充地点类型
+        location_type_str = "未知"
+        current_loc_obj = world_map.get_location(self._current_location)
+        if current_loc_obj and current_loc_obj.type:
+            location_type_str = current_loc_obj.type.value  #
+        prompt = prompt.replace("{{LOCATION_TYPE}}", location_type_str)
+
+        # 填充 AGENTS_HERE, OBJECTS_HERE, MEMORIES
         if len(agents_here) > 1:
             other_agent_names = [a.name for a in agents_here if a.agent_id != self.agent_id]
             if other_agent_names:
-                prompt = prompt.replace("{{AGENTS_HERE}}", f"你看到这里有 {len(other_agent_names)} 个人: {', '.join(other_agent_names)}.")
+                prompt = prompt.replace(
+                    "{{AGENTS_HERE}}",
+                    f"你看到这里有 {len(other_agent_names)} 个人: {', '.join(other_agent_names)}.",
+                )
             else:
                 prompt = prompt.replace("{{AGENTS_HERE}}", "这里现在只有你一个人。")
         else:

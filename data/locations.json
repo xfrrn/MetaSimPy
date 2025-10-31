@@ -1,14 +1,28 @@
 [
   {
     "name": "Apartment_1A",
-    "description": "亚当的公寓",
+    "description": "Leo (李昂) 的公寓",
     "type": "住宅",
     "objects": ["Bed", "Fridge", "Shower"],
     "tags": ["private", "home"]
   },
   {
     "name": "Apartment_1B",
-    "description": "夏娃的公寓",
+    "description": "Maya (美雅) 的公寓",
+    "type": "住宅",
+    "objects": ["Bed", "Fridge", "Shower"],
+    "tags": ["private", "home"]
+  },
+  {
+    "name": "Apartment_2A",
+    "description": "Sam (山姆) 的公寓",
+    "type": "住宅",
+    "objects": ["Bed", "Fridge", "Shower"],
+    "tags": ["private", "home"]
+  },
+  {
+    "name": "Apartment_2B",
+    "description": "Chloe (克洛伊) 的公寓",
     "type": "住宅",
     "objects": ["Bed", "Fridge", "Shower"],
     "tags": ["private", "home"]
