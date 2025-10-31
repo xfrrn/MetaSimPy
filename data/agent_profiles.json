@@ -35,17 +35,31 @@
 
   "agents": [
     {
-      "agent_id": "adam_01",
-      "name": "亚当",
-      "persona_file": "adam_persona.txt",
+      "agent_id": "leo_01",
+      "name": "Leo (李昂)",
+      "persona_file": "leo_persona.txt",
       "start_location": "Apartment_1A",
       "llm_profile_name": "local_llama_chat"
     },
     {
-      "agent_id": "eve_02",
-      "name": "夏娃",
-      "persona_file": "eve_persona.txt",
+      "agent_id": "maya_02",
+      "name": "Maya (美雅)",
+      "persona_file": "maya_persona.txt",
       "start_location": "Apartment_1B",
+      "llm_profile_name": "local_llama_chat"
+    },
+    {
+      "agent_id": "sam_03",
+      "name": "Sam (山姆)",
+      "persona_file": "sam_persona.txt",
+      "start_location": "Apartment_2A",
+      "llm_profile_name": "local_llama_chat"
+    },
+    {
+      "agent_id": "chloe_04",
+      "name": "Chloe (克洛伊)",
+      "persona_file": "chloe_persona.txt",
+      "start_location": "Apartment_2B",
       "llm_profile_name": "api_deepseek_chat"
     }
   ]
