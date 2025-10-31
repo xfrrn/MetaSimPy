@@ -132,7 +132,10 @@ class Agent:
 
             data = json.loads(response_content)
             action_name = data.get("action_name")
-            parameters = data.get("parameters", {})
+            if "parameters" in data:
+                parameters = data.get("parameters", {})
+            else:
+                parameters = {k: v for k, v in data.items() if k != "action_name"}
 
             action_class = actions.ACTION_MAPPING.get(action_name)
 
