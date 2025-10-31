@@ -19,7 +19,7 @@ class LLMSettings(BaseSettings):
     deepseek_api_key: Optional[str] = Field(default=None)
 
     agent_profiles_config_path: Path = Field(default=Path("data/agent_profiles.json"), description="指向 Agent 配置文件 (json) 的路径")
-    agent_persona_dir: Path = Field(default=Path("prompts/personas/"), description="存放 Agent 人设 (.txt) 文件的目录")
+    agent_persona_dir: Path = Field(default=Path("prompts/persons/"), description="存放 Agent 人设 (.txt) 文件的目录")
 
     class Config:
         env_file = ".env"
