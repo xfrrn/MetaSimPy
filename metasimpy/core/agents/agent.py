@@ -118,7 +118,7 @@ class Agent:
             if isinstance(action_obj, actions.WorkAction):
                 world_state.remove_agent_from_job(self.agent_id)
 
-            logger.trace(f"Agent '{self.name}' 的动作 '{action_name}' 已完成。")
+            logger.info(f"✅ Agent '{self.name}' 完成了动作: {action_name}")
             self._current_action = None
             return True
         else:
@@ -140,16 +140,20 @@ class Agent:
             action_class = actions.ACTION_MAPPING.get(action_name)
 
             if action_class:
-                return action_class(**parameters)
+                try:
+                    return action_class(**parameters)
+                except Exception as e:
+                    logger.error(f"创建动作 '{action_name}' 实例失败: {e}. 参数: {parameters}")
+                    return actions.WaitAction(duration_minutes=1)
             else:
                 logger.warning(f"LLM 返回了未知的 action_name: '{action_name}'。回退到 WaitAction。")
                 return actions.WaitAction(duration_minutes=1)
 
-        except json.JSONDecodeError:
-            logger.error(f"LLM 返回的 JSON 格式错误: {response_content}")
+        except json.JSONDecodeError as je:
+            logger.error(f"LLM 返回的 JSON 格式错误: {je}. 响应内容: {response_content[:500]}")
             return actions.WaitAction(duration_minutes=1)
         except Exception as e:
-            logger.error(f"解析 LLM 响应时出错: {e}. 响应: {response_content}")
+            logger.error(f"解析 LLM 响应时出错: {e}. 响应: {response_content[:500]}", exc_info=True)
             return actions.WaitAction(duration_minutes=1)
 
     async def think_and_act(
@@ -160,7 +164,13 @@ class Agent:
         object_prototypes: Dict[str, "GameObject"],
         agent_registry: "AgentRegistry",
     ):
-        logger.info(f"[{current_time.strftime('%H:%M')}] Agent '{self.name}' 开始思考...")
+        # 显示Agent当前状态
+        logger.info(f"\n┌─────────────────────────────────────────────")
+        logger.info(f"│ [{current_time.strftime('%H:%M')}] {self.name} 开始思考")
+        logger.info(f"│ 📍 位置: {self._current_location}")
+        logger.info(f"│ 💰 金钱: {self._internal_state.money} | 🔋 精力: {self._internal_state.energy} | 🍽 饥饿: {self._internal_state.hunger}")
+        logger.info(f"│ 😊 心情: {self._internal_state.mood.value}")
+        logger.info(f"└─────────────────────────────────────────────")
 
         if not self.llm or not self.memory_system:
             logger.error(f"Agent '{self.name}' 缺少 LLM 或 MemorySystem 实例，无法思考。")
@@ -179,25 +189,71 @@ class Agent:
             )
 
             # 2. 构建 Prompt
-            prompt = self._build_prompt(
-                current_time=current_time,
-                world_map=world_map,
-                agents_here=agents_here,
-                objects_here=objects_here,
-                memories=retrieved_memories,
-            )
+            logger.trace(f"Agent '{self.name}' 开始构建 Prompt...")
+            try:
+                prompt = self._build_prompt(
+                    current_time=current_time,
+                    world_map=world_map,
+                    agents_here=agents_here,
+                    objects_here=objects_here,
+                    memories=retrieved_memories,
+                )
+                logger.trace(f"Agent '{self.name}' Prompt 构建成功,长度: {len(prompt)} 字符")
+            except Exception as e:
+                logger.error(f"Agent '{self.name}' 构建 Prompt 失败: {type(e).__name__}: {e}", exc_info=True)
+                action_plan = actions.WaitAction(duration_minutes=1)
+                self._last_action_plan = action_plan
+                self._last_action_start_time = current_time
+                return
 
             # 3. 调用 LLM 决策
             logger.debug(f"Agent '{self.name}' 调用 LLM 进行决策...")
             action_plan: actions.ActionBase
 
             try:
-                response = await self.llm.ainvoke(prompt)
-                action_plan = self._parse_llm_response(response.content)
-                logger.info(f"Agent '{self.name}' 决定执行: {action_plan.__class__.__name__} ({action_plan.duration_minutes} 分钟)")
+                logger.trace(f"Agent '{self.name}' LLM配置: model={self.llm.model_name if hasattr(self.llm, 'model_name') else 'unknown'}")
+                logger.trace(f"Agent '{self.name}' Prompt前100字符: {prompt[:100]}...")
+                logger.trace(f"Agent '{self.name}' 开始调用 LLM ainvoke...")
 
+                # 使用更详细的错误捕获
+                try:
+                    response = await self.llm.ainvoke(prompt)
+                except Exception as inner_e:
+                    logger.error(f"Agent '{self.name}' ainvoke调用内部异常: {type(inner_e).__name__}: {inner_e}", exc_info=True)
+                    # 尝试获取更多信息
+                    if hasattr(inner_e, "response"):
+                        logger.error(f"Agent '{self.name}' 异常包含response: {inner_e.response}")
+                    if hasattr(inner_e, "body"):
+                        logger.error(f"Agent '{self.name}' 异常包含body: {inner_e.body}")
+                    raise  # 重新抛出,让外层捕获
+
+                logger.trace(f"Agent '{self.name}' LLM ainvoke 完成")
+                logger.trace(f"Agent '{self.name}' LLM 原始响应类型: {type(response)}")
+                logger.trace(f"Agent '{self.name}' LLM 响应对象: {response}")
+
+                # 检查response是否有content属性
+                if not hasattr(response, "content"):
+                    logger.error(f"Agent '{self.name}' LLM 响应缺少 'content' 属性。响应: {response}")
+                    action_plan = actions.WaitAction(duration_minutes=1)
+                else:
+                    response_content = response.content
+                    # 显示完整的LLM响应以便观察
+                    logger.info(f"━━━ Agent '{self.name}' LLM响应 ━━━\n{response_content}\n━━━━━━━━━━━━━━━━━━━━━")
+                    action_plan = self._parse_llm_response(response_content)
+                    logger.success(f"✓ Agent '{self.name}' 决定执行: {action_plan.__class__.__name__} (持续{action_plan.duration_minutes}分钟)")
+
+            except KeyError as ke:
+                logger.error(f"Agent '{self.name}' LLM 调用KeyError: {str(ke)}. 这通常意味着API返回了错误格式。", exc_info=True)
+                logger.error(f"Agent '{self.name}' 完整异常信息: {repr(ke)}")
+                action_plan = actions.WaitAction(duration_minutes=1)
+            except AttributeError as ae:
+                logger.error(f"Agent '{self.name}' LLM 响应对象缺少必要属性: {ae}", exc_info=True)
+                action_plan = actions.WaitAction(duration_minutes=1)
             except Exception as e:
-                logger.error(f"Agent '{self.name}' LLM 决策失败: {e}", exc_info=True)
+                logger.error(f"Agent '{self.name}' LLM 决策失败: {type(e).__name__}: {e}", exc_info=True)
+                import traceback
+
+                logger.error(f"Agent '{self.name}' 完整堆栈: {traceback.format_exc()}")
                 action_plan = actions.WaitAction(duration_minutes=1)
         try:
             # 4. 执行动作
@@ -216,7 +272,7 @@ class Agent:
                 "action_obj": action_plan,
                 "end_time": action_end_time,
             }
-            logger.debug(f"Agent '{self.name}' 当前动作设置为 '{action_plan.__class__.__name__}', 预计结束于 {action_end_time.strftime('%H:%M')}")
+            logger.info(f"⏱ Agent '{self.name}' 开始执行 '{action_plan.__class__.__name__}', 预计于 {action_end_time.strftime('%H:%M')} 完成")
 
             # 5a. 如果有记忆系统，就记录记忆
             if self.memory_system:
@@ -225,8 +281,18 @@ class Agent:
                 memory_content = f"我在 {self._current_location} 执行了动作: {action_plan.__class__.__name__}。"
                 if isinstance(action_plan, actions.MoveToAction):
                     memory_content = f"我从 {self._current_location} 移动到了 {action_plan.target_location}。"
+                    logger.info(f"🚶 Agent '{self.name}' 正在移动: {self._current_location} → {action_plan.target_location}")
                 elif isinstance(action_plan, actions.SpeakAction):
                     memory_content = f"我对 {action_plan.target_agent_id or '自己'} 说: '{action_plan.message}'。"
+                    logger.info(f"💬 Agent '{self.name}' 说话: \"{action_plan.message}\"")
+                elif isinstance(action_plan, actions.UseObjectAction):
+                    logger.info(f"🔧 Agent '{self.name}' 使用物体: {action_plan.object_name}")
+                elif isinstance(action_plan, actions.WorkAction):
+                    logger.info(f"💼 Agent '{self.name}' 开始工作: {action_plan.job_type} (计划{action_plan.duration_minutes}分钟)")
+                elif isinstance(action_plan, actions.BuyItemAction):
+                    logger.info(f"🛒 Agent '{self.name}' 购买物品: {action_plan.quantity}x {action_plan.item_name}")
+                elif isinstance(action_plan, actions.WaitAction):
+                    logger.info(f"⏸ Agent '{self.name}' 等待 {action_plan.duration_minutes} 分钟")
 
                 new_memory = MemoryRecord(
                     agent_id=self.agent_id,
